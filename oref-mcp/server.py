@@ -9,11 +9,17 @@ from __future__ import annotations
 import json
 import os
 from datetime import date, datetime, timedelta
-from typing import Any
+from typing import Any, Awaitable, Callable
 from zoneinfo import ZoneInfo
 
+import anyio
 import httpx
 from mcp.server.fastmcp import FastMCP
+
+# ASGI types (minimal typing for the wrapper)
+Receive = Callable[[], Awaitable[dict[str, Any]]]
+Send = Callable[[dict[str, Any]], Awaitable[None]]
+Scope = dict[str, Any]
 
 OREF_BASE = "https://www.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx"
 OREF_HEADERS = {
@@ -200,10 +206,53 @@ async def get_alerts_by_city(
     return await _alerts_report(from_date, to_date, city.strip())
 
 
+class _AcceptClaudeWildcardASGI:
+    """
+    Claude.ai sends Accept: */* on MCP requests. Older mcp Python builds reject that
+    with 406 before the handshake runs; Claude then shows 'Couldn't reach the MCP server'.
+    Normalize */* (and empty Accept) to application/json for Streamable HTTP JSON mode.
+    """
+
+    def __init__(self, app: Any) -> None:
+        self._app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope.get("type") == "http":
+            raw_headers = scope.get("headers") or []
+            accept_val = ""
+            for key, val in raw_headers:
+                if key.lower() == b"accept":
+                    accept_val = val.decode("latin-1")
+                    break
+            low = accept_val.lower()
+            if "application/json" not in low and (
+                not accept_val.strip() or "*/*" in low or low.strip() == "*/*"
+            ):
+                new_headers = [(k, v) for k, v in raw_headers if k.lower() != b"accept"]
+                new_headers.append((b"accept", b"application/json"))
+                scope = {**scope, "headers": new_headers}
+        await self._app(scope, receive, send)
+
+
+async def _run_streamable_http_async() -> None:
+    import uvicorn
+
+    inner = mcp.streamable_http_app()
+    app: Any = _AcceptClaudeWildcardASGI(inner)
+    config = uvicorn.Config(
+        app,
+        host=mcp.settings.host,
+        port=mcp.settings.port,
+        log_level=mcp.settings.log_level.lower(),
+    )
+    server = uvicorn.Server(config)
+    await server.serve()
+
+
 def main() -> None:
     transport = _transport()
     if transport == "streamable-http":
-        mcp.run(transport="streamable-http")
+        anyio.run(_run_streamable_http_async)
     elif transport in ("stdio", ""):
         mcp.run(transport="stdio")
     else:
