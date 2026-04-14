@@ -31,6 +31,7 @@ Every day in the requested range appears in `daily_counts` (zeros included).
 | Variable | Meaning |
 |----------|---------|
 | `OREF_PROXY_URL` | Optional. HTTP(S) proxy URL for requests to Oref (e.g. `http://user:pass@host:port`). |
+| `OREF_HISTORY_URL` | Optional. Override full history URL (must include `GetAlarmsHistory.aspx` path); otherwise the server tries `www` then `alerts-history`. |
 | `MCP_TRANSPORT` | `stdio` (default) for local “spawn process” connectors, or **`streamable-http`** for remote URL connectors (Claude.ai). |
 | `MCP_HOST` | Bind address for Streamable HTTP (default: `0.0.0.0` when `MCP_TRANSPORT=streamable-http`, else `127.0.0.1`). |
 | `MCP_PORT` | Port for Streamable HTTP (default: `8000`). MCP endpoint path is `/mcp` unless you change FastMCP settings. |
@@ -123,7 +124,7 @@ Use **Customize → Connectors → Add custom connector** and enter your HTTPS M
 
 ## Data source
 
-- Endpoint: `https://www.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx?lang=he&fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD&mode=0`
+- Endpoint (tries `www.oref.org.il` first, then `alerts-history.oref.org.il`): `.../Shared/Ajax/GetAlarmsHistory.aspx?lang=he&fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD&mode=0`
 - Required headers: `Referer: https://www.oref.org.il/`, `X-Requested-With: XMLHttpRequest`
 
 Only alerts with **`category` 1** (rocket/missile) are counted; city/area matching uses **substring** match on the **`data`** field.

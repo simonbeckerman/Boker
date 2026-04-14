@@ -22,11 +22,23 @@ Receive = Callable[[], Awaitable[dict[str, Any]]]
 Send = Callable[[dict[str, Any]], Awaitable[None]]
 Scope = dict[str, Any]
 
-OREF_BASE = "https://www.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx"
-OREF_HEADERS = {
-    "Referer": "https://www.oref.org.il/",
-    "X-Requested-With": "XMLHttpRequest",
-}
+# History AJAX: `www` sometimes 404s; official history UI often lives on `alerts-history`.
+OREF_HISTORY_ENDPOINTS: list[tuple[str, dict[str, str]]] = [
+    (
+        "https://www.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx",
+        {
+            "Referer": "https://www.oref.org.il/",
+            "X-Requested-With": "XMLHttpRequest",
+        },
+    ),
+    (
+        "https://alerts-history.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx",
+        {
+            "Referer": "https://alerts-history.oref.org.il/",
+            "X-Requested-With": "XMLHttpRequest",
+        },
+    ),
+]
 TEL_AVIV_SUBSTRING = "תל אביב"
 IL_TZ = ZoneInfo("Asia/Jerusalem")
 
@@ -123,33 +135,48 @@ async def _fetch_alarms(from_date: str, to_date: str) -> list[dict[str, Any]]:
         "mode": "0",
     }
     proxy = os.environ.get("OREF_PROXY_URL") or None
+    override = (os.environ.get("OREF_HISTORY_URL") or "").strip()
+    endpoints: list[tuple[str, dict[str, str]]] = (
+        [(override, OREF_HISTORY_ENDPOINTS[0][1])] if override else OREF_HISTORY_ENDPOINTS
+    )
+
+    last_status: int | None = None
+    last_snippet = ""
+
     async with httpx.AsyncClient(
         proxy=proxy,
         timeout=httpx.Timeout(60.0),
-        headers=OREF_HEADERS,
         follow_redirects=True,
     ) as client:
-        r = await client.get(OREF_BASE, params=params)
-        # Oref sometimes returns 404 for “no rows” or unsupported ranges instead of `[]`.
-        if r.status_code == 404:
-            return []
-        r.raise_for_status()
-        text = r.text.strip()
-        if not text:
-            return []
-        try:
-            data = json.loads(text)
-        except json.JSONDecodeError as e:
-            raise RuntimeError(
-                "Oref did not return JSON (often Access Denied / geo-block or an HTML error page). "
-                "Run from an Israeli IP or set OREF_PROXY_URL."
-            ) from e
-        if not isinstance(data, list):
-            raise RuntimeError(
-                "Unexpected Oref response: expected a JSON array. "
-                "If you see Access Denied, check IP/geo or OREF_PROXY_URL."
-            )
-        return [x for x in data if isinstance(x, dict)]
+        for url, headers in endpoints:
+            r = await client.get(url, params=params, headers=headers)
+            last_status = r.status_code
+            last_snippet = (r.text or "")[:120].replace("\n", " ")
+            if r.status_code == 404:
+                continue
+            r.raise_for_status()
+            text = r.text.strip()
+            if not text:
+                continue
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError as e:
+                raise RuntimeError(
+                    "Oref did not return JSON (often Access Denied / geo-block or an HTML error page). "
+                    "Run from an Israeli IP or set OREF_PROXY_URL."
+                ) from e
+            if not isinstance(data, list):
+                raise RuntimeError(
+                    "Unexpected Oref response: expected a JSON array. "
+                    "If you see Access Denied, check IP/geo or OREF_PROXY_URL."
+                )
+            return [x for x in data if isinstance(x, dict)]
+
+    if last_status == 404:
+        return []
+    raise RuntimeError(
+        f"Oref history request failed (last HTTP {last_status}): {last_snippet!r}"
+    )
 
 
 def _build_daily_report(
