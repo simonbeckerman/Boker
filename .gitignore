@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+ENV/
+
+# OS / editor
+.DS_Store
+
+# Secrets (never commit)
+.env
+.env.*
