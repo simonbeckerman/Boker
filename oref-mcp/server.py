@@ -130,6 +130,9 @@ async def _fetch_alarms(from_date: str, to_date: str) -> list[dict[str, Any]]:
         follow_redirects=True,
     ) as client:
         r = await client.get(OREF_BASE, params=params)
+        # Oref sometimes returns 404 for “no rows” or unsupported ranges instead of `[]`.
+        if r.status_code == 404:
+            return []
         r.raise_for_status()
         text = r.text.strip()
         if not text:
