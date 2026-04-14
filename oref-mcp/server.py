@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 import anyio
 import httpx
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 # ASGI types (minimal typing for the wrapper)
 Receive = Callable[[], Awaitable[dict[str, Any]]]
@@ -39,6 +40,16 @@ def _default_bind_host() -> str:
     return "0.0.0.0" if _transport() == "streamable-http" else "127.0.0.1"
 
 
+def _transport_security() -> TransportSecuritySettings | None:
+    """
+    Behind Cloudflare Tunnel, requests use Host: *.trycloudflare.com, not 127.0.0.1.
+    DNS rebinding protection would return 421 Misdirected Request unless disabled for this mode.
+    """
+    if _transport() == "streamable-http":
+        return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+    return None
+
+
 # stateless + JSON responses: recommended for Streamable HTTP (Claude remote MCP).
 mcp = FastMCP(
     "oref-alerts",
@@ -46,6 +57,7 @@ mcp = FastMCP(
     json_response=True,
     host=os.environ.get("MCP_HOST", _default_bind_host()),
     port=int(os.environ.get("MCP_PORT", "8000")),
+    transport_security=_transport_security(),
 )
 
 
