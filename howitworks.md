@@ -37,6 +37,12 @@ When you ask Claude for alert counts:
 6. Boker returns clean JSON to Claude
 7. Claude shows you the answer
 
+Most requests should now use one general backend tool, `get_alert_data`:
+
+- If a city is provided, it returns city-level counts.
+- If no city is provided (or user asks for Israel-wide), it returns nationwide counts.
+- If no dates are provided, it defaults to the last 7 days.
+
 ## What each piece does
 
 - Claude: the front door

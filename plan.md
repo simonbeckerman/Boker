@@ -11,12 +11,14 @@ Keep a private MVP running end-to-end:
 
 - Runtime host: Google Cloud VM `oref-mcp` in `me-west1-a`
 - App: `oref-mcp/server.py` in `streamable-http` mode
+- Preferred MCP data tool: `get_alert_data` (city + nationwide + default last-7-days)
 - Public MCP URL: `https://boker.z1m3n.com/mcp`
 - Cloudflare tunnel: named tunnel `boker-mcp` (healthy)
 - Auto-start services on VM:
   - `cloudflared` service
   - `boker-mcp` systemd service
 - Claude connector: points to `https://boker.z1m3n.com/mcp`
+- Local operator machine has Google Cloud CLI installed (`gcloud-cli` via Homebrew)
 
 ## MVP boundaries
 
