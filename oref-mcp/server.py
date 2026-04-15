@@ -40,6 +40,7 @@ OREF_HISTORY_ENDPOINTS: list[tuple[str, dict[str, str]]] = [
     ),
 ]
 TEL_AVIV_SUBSTRING = "תל אביב"
+ALL_CITIES_SENTINEL = "__ALL_CITIES__"
 IL_TZ = ZoneInfo("Asia/Jerusalem")
 CITY_ALIASES: dict[str, str] = {
     "tel aviv": "תל אביב",
@@ -62,6 +63,15 @@ CITY_ALIASES: dict[str, str] = {
     "herzliya": "הרצליה",
     "kfar saba": "כפר סבא",
     "rehovot": "רחובות",
+    "israel": ALL_CITIES_SENTINEL,
+    "all israel": ALL_CITIES_SENTINEL,
+    "all of israel": ALL_CITIES_SENTINEL,
+    "rest of israel": ALL_CITIES_SENTINEL,
+    "nationwide": ALL_CITIES_SENTINEL,
+    "all": ALL_CITIES_SENTINEL,
+    "all cities": ALL_CITIES_SENTINEL,
+    "ישראל": ALL_CITIES_SENTINEL,
+    "כל הארץ": ALL_CITIES_SENTINEL,
 }
 
 
@@ -99,6 +109,10 @@ def _parse_ymd(s: str) -> date:
     return datetime.strptime(s.strip(), "%Y-%m-%d").date()
 
 
+def _today_il() -> date:
+    return datetime.now(IL_TZ).date()
+
+
 def _iter_dates_inclusive(start: date, end: date) -> list[date]:
     out: list[date] = []
     d = start
@@ -120,6 +134,8 @@ def _is_rocket_category(raw: Any) -> bool:
 def _city_matches(data: str, city: str) -> bool:
     if not city:
         return False
+    if city == ALL_CITIES_SENTINEL:
+        return True
     return city in (data or "")
 
 
@@ -254,6 +270,35 @@ async def _alerts_report(from_date: str, to_date: str, city: str) -> dict[str, A
     return _build_daily_report(from_d, to_d, city, alerts)
 
 
+def _resolve_date_range(from_date: str, to_date: str) -> tuple[date, date]:
+    """
+    Resolve date range with MVP-friendly defaults:
+    - both missing -> last 7 days (today and 6 days back, IL timezone)
+    - one missing -> use the provided day for both endpoints
+    """
+    from_raw = (from_date or "").strip()
+    to_raw = (to_date or "").strip()
+
+    if not from_raw and not to_raw:
+        end = _today_il()
+        start = end - timedelta(days=6)
+        return start, end
+
+    if from_raw and not to_raw:
+        d = _parse_ymd(from_raw)
+        return d, d
+
+    if to_raw and not from_raw:
+        d = _parse_ymd(to_raw)
+        return d, d
+
+    start = _parse_ymd(from_raw)
+    end = _parse_ymd(to_raw)
+    if start > end:
+        raise ValueError("from_date must be on or before to_date")
+    return start, end
+
+
 @mcp.tool()
 async def get_tel_aviv_alert_count(from_date: str, to_date: str) -> dict[str, Any]:
     """
@@ -274,13 +319,57 @@ async def get_alerts_by_city(
     """
     Same as Tel Aviv tool, but `city` is a Hebrew substring to match inside the `data`
     field (e.g. "תל אביב", "חיפה"). Common English city names (e.g. "Tel Aviv",
-    "Haifa", "Jerusalem") are also accepted and mapped automatically.
+    "Haifa", "Jerusalem") are also accepted and mapped automatically. You can also
+    pass "Israel", "all cities", or "nationwide" to get a country-wide count.
     Only rocket/missile alerts (category 1) are counted.
     """
     city_filter = _normalize_city_filter(city)
     if not city_filter:
         raise ValueError("city must be a non-empty Hebrew substring")
     return await _alerts_report(from_date, to_date, city_filter)
+
+
+@mcp.tool()
+async def get_alert_data(
+    city: str = "",
+    from_date: str = "",
+    to_date: str = "",
+) -> dict[str, Any]:
+    """
+    General alert data tool for natural-language requests.
+
+    - If `city` is empty: returns nationwide totals (all cities/areas).
+    - If `city` is provided: matches that city/area (Hebrew substring), with
+      English aliases mapped automatically.
+    - If both dates are empty: defaults to last 7 days in Israel timezone.
+    - If only one date is provided: uses that same date as a single-day query.
+
+    Dates must be YYYY-MM-DD when provided. Counts only category 1 alerts.
+    """
+    start_d, end_d = _resolve_date_range(from_date, to_date)
+    from_s = start_d.isoformat()
+    to_s = end_d.isoformat()
+
+    requested_city = (city or "").strip()
+    city_filter = _normalize_city_filter(requested_city)
+    scope = "city"
+    if not city_filter:
+        city_filter = ALL_CITIES_SENTINEL
+        scope = "nationwide"
+    elif city_filter == ALL_CITIES_SENTINEL:
+        scope = "nationwide"
+
+    report = await _alerts_report(from_s, to_s, city_filter)
+    if city_filter == ALL_CITIES_SENTINEL:
+        report["city_filter"] = None
+
+    report["scope"] = scope
+    report["requested_city"] = requested_city or None
+    report["normalized_city"] = None if city_filter == ALL_CITIES_SENTINEL else city_filter
+    report["timezone"] = "Asia/Jerusalem"
+    report["source"] = "oref-history"
+    report["is_partial"] = False
+    return report
 
 
 class _AcceptClaudeWildcardASGI:
