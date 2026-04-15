@@ -9,6 +9,7 @@
 - Prioritize what is **right for the project** over what is merely preferred. When preference conflicts with project correctness, explicitly recommend the correct path and explain why in simple terms.
 - When a connected integration exists in Cursor (for example Cloudflare API/docs MCP), use it first for relevant actions before asking the user for dashboard clicks or copy-paste terminal work.
 - Ask the user to run terminal commands only when the agent cannot act directly on that system (for example VM shell commands outside connected MCP tools).
+- If deployment access is available (for example gcloud/SSH from this machine), the agent should perform deploy steps itself: commit/push, pull latest on VM, restart services, and run a basic smoke check before replying.
 - Keep project documentation current after major infrastructure or workflow changes (README/plan/howitworks/operations/audit as needed).
 
 ---

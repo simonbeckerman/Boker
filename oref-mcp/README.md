@@ -13,7 +13,7 @@ Model Context Protocol (MCP) server that queries the Israeli Home Front Command 
 ## Tools
 
 - **`get_tel_aviv_alert_count`** — `from_date`, `to_date` (YYYY-MM-DD). Counts category `1` alerts whose `data` field **contains** `תל אביב`.
-- **`get_alerts_by_city`** — same plus **`city`** (Hebrew substring, e.g. `תל אביב`, `חיפה`).
+- **`get_alerts_by_city`** — same plus **`city`**. Hebrew works directly (e.g. `תל אביב`, `חיפה`). Common English names like `Tel Aviv`, `Haifa`, `Jerusalem` are mapped automatically.
 
 Both return JSON:
 
@@ -127,6 +127,7 @@ Use **Customize → Connectors → Add custom connector** and enter your HTTPS M
 - "How many sirens sounded in Tel Aviv on April 8 2026?"
 - "Give me a daily siren count for Tel Aviv from April 8 to April 14 2026"
 - "Which day had the most alerts in Tel Aviv since April 1 2026?"
+- "Give me a daily siren count for Haifa from April 8 to April 14 2026 (use the city tool)."
 
 ## Data source
 

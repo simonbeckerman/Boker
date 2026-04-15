@@ -41,6 +41,28 @@ OREF_HISTORY_ENDPOINTS: list[tuple[str, dict[str, str]]] = [
 ]
 TEL_AVIV_SUBSTRING = "תל אביב"
 IL_TZ = ZoneInfo("Asia/Jerusalem")
+CITY_ALIASES: dict[str, str] = {
+    "tel aviv": "תל אביב",
+    "tel-aviv": "תל אביב",
+    "tel aviv-yafo": "תל אביב",
+    "tel aviv yafo": "תל אביב",
+    "jerusalem": "ירושלים",
+    "haifa": "חיפה",
+    "beer sheva": "באר שבע",
+    "be'er sheva": "באר שבע",
+    "beersheba": "באר שבע",
+    "ashkelon": "אשקלון",
+    "ashdod": "אשדוד",
+    "netanya": "נתניה",
+    "rishon lezion": "ראשון לציון",
+    "petah tikva": "פתח תקווה",
+    "petach tikva": "פתח תקווה",
+    "holon": "חולון",
+    "bat yam": "בת ים",
+    "herzliya": "הרצליה",
+    "kfar saba": "כפר סבא",
+    "rehovot": "רחובות",
+}
 
 
 def _transport() -> str:
@@ -99,6 +121,16 @@ def _city_matches(data: str, city: str) -> bool:
     if not city:
         return False
     return city in (data or "")
+
+
+def _normalize_city_filter(city: str) -> str:
+    """
+    Accept Hebrew directly and map common English names to Hebrew substrings.
+    """
+    city_clean = (city or "").strip()
+    if not city_clean:
+        return ""
+    return CITY_ALIASES.get(city_clean.lower(), city_clean)
 
 
 def _parse_alert_local_date(alert_date: str) -> date:
@@ -241,11 +273,14 @@ async def get_alerts_by_city(
 ) -> dict[str, Any]:
     """
     Same as Tel Aviv tool, but `city` is a Hebrew substring to match inside the `data`
-    field (e.g. "תל אביב", "חיפה"). Only rocket/missile alerts (category 1) are counted.
+    field (e.g. "תל אביב", "חיפה"). Common English city names (e.g. "Tel Aviv",
+    "Haifa", "Jerusalem") are also accepted and mapped automatically.
+    Only rocket/missile alerts (category 1) are counted.
     """
-    if not (city or "").strip():
+    city_filter = _normalize_city_filter(city)
+    if not city_filter:
         raise ValueError("city must be a non-empty Hebrew substring")
-    return await _alerts_report(from_date, to_date, city.strip())
+    return await _alerts_report(from_date, to_date, city_filter)
 
 
 class _AcceptClaudeWildcardASGI:
