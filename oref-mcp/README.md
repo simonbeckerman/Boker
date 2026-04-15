@@ -13,6 +13,7 @@ Model Context Protocol (MCP) server that queries the Israeli Home Front Command 
 ## Tools
 
 - **`get_alert_data`** — recommended general tool for Claude. Inputs: `city` (optional), `from_date` and `to_date` (optional, YYYY-MM-DD). If `city` is empty it returns nationwide totals. If both dates are empty it defaults to the last 7 days.
+- **`get_alerts_nationwide`** — explicit nationwide tool. Inputs: `from_date` and `to_date` are optional (YYYY-MM-DD). If both are missing it defaults to the last 7 days.
 - **`get_tel_aviv_alert_count`** — `from_date`, `to_date` (YYYY-MM-DD). Counts category `1` alerts whose `data` field **contains** `תל אביב`.
 - **`get_alerts_by_city`** — same plus **`city`**. Hebrew works directly (e.g. `תל אביב`, `חיפה`). Common English names like `Tel Aviv`, `Haifa`, `Jerusalem` are mapped automatically. You can also pass `Israel`, `all cities`, or `nationwide` for a country-wide total.
 
@@ -130,6 +131,7 @@ Use **Customize → Connectors → Add custom connector** and enter your HTTPS M
 - "Which day had the most alerts in Tel Aviv since April 1 2026?"
 - "Give me a daily siren count for Haifa from April 8 to April 14 2026 (use the city tool)."
 - "Give me a nationwide daily siren count for the last week."
+- "Use get_alerts_nationwide for today."
 
 ## Data source
 

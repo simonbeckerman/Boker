@@ -372,6 +372,32 @@ async def get_alert_data(
     return report
 
 
+@mcp.tool()
+async def get_alerts_nationwide(
+    from_date: str = "",
+    to_date: str = "",
+) -> dict[str, Any]:
+    """
+    Explicit nationwide alert tool.
+
+    Returns country-wide day-by-day counts (all cities/areas) for category 1 alerts.
+    Dates are optional:
+    - both missing -> last 7 days in Israel timezone
+    - only one provided -> single-day query
+    - both provided -> inclusive range (YYYY-MM-DD)
+    """
+    start_d, end_d = _resolve_date_range(from_date, to_date)
+    report = await _alerts_report(start_d.isoformat(), end_d.isoformat(), ALL_CITIES_SENTINEL)
+    report["city_filter"] = None
+    report["scope"] = "nationwide"
+    report["requested_city"] = None
+    report["normalized_city"] = None
+    report["timezone"] = "Asia/Jerusalem"
+    report["source"] = "oref-history"
+    report["is_partial"] = False
+    return report
+
+
 class _AcceptClaudeWildcardASGI:
     """
     Claude.ai sends Accept: */* on MCP requests. Older mcp Python builds reject that
