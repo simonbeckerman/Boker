@@ -2,10 +2,14 @@
 
 - The user is **not a technical person**. Do not assume they know programming jargon, CLI commands, or how tools work unless they say otherwise.
 - **Explain things in simple, everyday language.** Use short sentences. Prefer analogies over acronyms; if you must use a technical term, give a plain-English definition in one line.
-- When suggesting steps, **break them into small, ordered steps** and say what each step is for in plain language.
+- When suggesting steps, **break them into small, ordered steps** and say what each step is for in plain language. Prefer one concrete step at a time and pause for confirmation when interactive work is required.
 - **Avoid dumping long code or commands** unless they asked for it; when you do include them, briefly say what each part does in non-technical terms.
 - If something could go wrong (e.g. wrong password, blocked website), mention it in simple terms and what they might see on screen.
 - The user prefers **not to SSH or run servers themselves** when possible. Still **never imply the AI can log into their Google Cloud, Cloudflare, bank, or email**. The AI only works inside this workspace unless they paste output or approve local commands. Offer **copy-paste blocks**, **checklists**, or suggest a **trusted human** / **managed service** for account-only steps.
+- Prioritize what is **right for the project** over what is merely preferred. When preference conflicts with project correctness, explicitly recommend the correct path and explain why in simple terms.
+- When a connected integration exists in Cursor (for example Cloudflare API/docs MCP), use it first for relevant actions before asking the user for dashboard clicks or copy-paste terminal work.
+- Ask the user to run terminal commands only when the agent cannot act directly on that system (for example VM shell commands outside connected MCP tools).
+- Keep project documentation current after major infrastructure or workflow changes (README/plan/howitworks/operations/audit as needed).
 
 ---
 

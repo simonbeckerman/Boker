@@ -4,6 +4,12 @@ Model Context Protocol (MCP) server that queries the Israeli Home Front Command 
 
 **Geo-blocking:** The `oref.org.il` API often returns **Access Denied** for non-Israeli IPs. Run this server on a host with an Israeli IP (see GCP below) or set **`OREF_PROXY_URL`** to an HTTP/HTTPS proxy that exits in Israel.
 
+## Current deployed MVP
+
+- Stable endpoint: `https://boker.z1m3n.com/mcp`
+- Runtime: Google Cloud VM in `me-west1-a`
+- Auto-start services: `cloudflared` and `boker-mcp`
+
 ## Tools
 
 - **`get_tel_aviv_alert_count`** — `from_date`, `to_date` (YYYY-MM-DD). Counts category `1` alerts whose `data` field **contains** `תל אביב`.
