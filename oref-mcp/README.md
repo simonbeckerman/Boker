@@ -2,6 +2,30 @@
 
 Model Context Protocol (MCP) server that queries the Israeli Home Front Command (Pikud HaOref) historical alerts API and exposes tools for day-by-day rocket/missile alert counts by city (Hebrew area names in the official feed).
 
+## Project status (paused)
+
+Active development is paused for now.
+
+The service is still kept running for daily siren queries in Claude. This is an MVP prototype and that is the current goal: stable daily use, not new features.
+
+### Keep it running (simple checklist)
+
+Use this quick checklist when you want to confirm everything is healthy:
+
+1. Confirm MCP URL responds in Claude (ask one short test question like "alerts today in Tel Aviv").
+2. If Claude cannot use the tool, verify the VM services are running (`cloudflared` and `boker-mcp`).
+3. If services are running but answers fail, check whether Oref upstream is temporarily unavailable or blocked.
+4. If needed, restart `boker-mcp` first, then `cloudflared`.
+5. Re-run one test query in Claude to confirm recovery.
+
+### How to resume development later
+
+When you come back to active development, start with these three steps:
+
+1. Read this README section "Current deployed MVP" and verify the live endpoint still works.
+2. Review `BACKLOG.md` and pick exactly one small item to ship first.
+3. Run local smoke checks, then make changes in small commits so rollback is easy.
+
 **Geo-blocking:** The `oref.org.il` API often returns **Access Denied** for non-Israeli IPs. Run this server on a host with an Israeli IP (see GCP below) or set **`OREF_PROXY_URL`** to an HTTP/HTTPS proxy that exits in Israel.
 
 ## Current deployed MVP
